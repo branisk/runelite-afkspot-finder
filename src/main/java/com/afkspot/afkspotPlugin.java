@@ -71,12 +71,18 @@ public class afkspotPlugin extends Plugin
 			return;
 		}
 
-		for (NPC npc : client.getNpcs())
+		NPC[] npcs = client.getCachedNPCs();
+		int n = npcs.length;
+		for (int index = 0; index < n; index++)
 		{
+			NPC npc = npcs[index];
+			if (npc == null || npc.isDead())
+			{
+				continue;
+			}
+
 			WorldPoint npcTile = npc.getWorldLocation();
-			int npcIndex = npc.getIndex();
-			tileDensity.putIfAbsent(npcTile, new HashSet<>());
-			tileDensity.get(npcTile).add(npcIndex);
+			tileDensity.computeIfAbsent(npcTile, k -> new HashSet<>()).add(index);
 		}
 
 		overlay.updateTopTiles(getTopTiles(config.numberOfTiles()));
