@@ -57,7 +57,7 @@ public class afkspotPlugin extends Plugin
 	{
 		log.info("AFK Spot Finder stopped!");
 		tileDensity.clear();
-		overlay.getTopTiles().clear();
+		overlay.updateTopTiles(Collections.emptyList());
 		overlayManager.remove(overlay);
 	}
 
@@ -67,7 +67,7 @@ public class afkspotPlugin extends Plugin
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
 			tileDensity.clear();
-			overlay.getTopTiles().clear();
+			overlay.updateTopTiles(Collections.emptyList());
 		}
 	}
 

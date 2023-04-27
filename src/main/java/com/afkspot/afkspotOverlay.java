@@ -1,6 +1,5 @@
 package com.afkspot;
 
-import lombok.Getter;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
@@ -18,14 +17,14 @@ public class afkspotOverlay extends Overlay
 {
     private final Client client;
     private final afkspotPlugin plugin;
-    @Getter
-    private Collection<Map.Entry<WorldPoint, Set<Integer>>> topTiles = Collections.emptyList();
+    private Collection<Map.Entry<WorldPoint, Set<Integer>>> topTiles;
 
     @Inject
     public afkspotOverlay(Client client, afkspotPlugin plugin)
     {
         this.client = client;
         this.plugin = plugin;
+        this.topTiles = Collections.emptyList();
         setPosition(OverlayPosition.DYNAMIC);
         setLayer(OverlayLayer.ABOVE_SCENE);
     }
@@ -56,9 +55,9 @@ public class afkspotOverlay extends Overlay
         return null;
     }
 
-    public void updateTopTiles(Collection<Map.Entry<WorldPoint, Set<Integer>>> tiles)
+    public void updateTopTiles(Collection<Map.Entry<WorldPoint, Set<Integer>>> topTiles)
     {
-        this.topTiles = tiles;
+        this.topTiles = topTiles;
     }
 
     private Color getColorForDensity(int density)
