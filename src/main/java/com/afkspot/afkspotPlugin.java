@@ -13,11 +13,14 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.ToIntFunction;
 
 @Slf4j
 @PluginDescriptor(
@@ -37,13 +40,12 @@ public class afkspotPlugin extends Plugin
 	@Inject
 	private OverlayManager overlayManager;
 
-	private Map<WorldPoint, Set<Integer>> tileDensity;
+	private final Map<WorldPoint, Set<Integer>> tileDensity = new HashMap<>();
 
 	@Override
 	protected void startUp() throws Exception
 	{
 		log.info("AFK Spot Finder started!");
-		tileDensity = new HashMap<>();
 		overlayManager.add(overlay);
 	}
 
@@ -51,6 +53,8 @@ public class afkspotPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		log.info("AFK Spot Finder stopped!");
+		tileDensity.clear();
+		overlay.getTopTiles().clear();
 		overlayManager.remove(overlay);
 	}
 
@@ -60,6 +64,7 @@ public class afkspotPlugin extends Plugin
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
 			tileDensity.clear();
+			overlay.getTopTiles().clear();
 		}
 	}
 
@@ -85,7 +90,7 @@ public class afkspotPlugin extends Plugin
 			tileDensity.computeIfAbsent(npcTile, k -> new HashSet<>()).add(index);
 		}
 
-		overlay.updateTopTiles(getTopTiles(config.numberOfTiles()));
+		updateTopTiles(config.numberOfTiles());
 	}
 
 	@Provides
@@ -94,13 +99,47 @@ public class afkspotPlugin extends Plugin
 		return configManager.getConfig(afkspotConfig.class);
 	}
 
-	private Map<WorldPoint, Integer> getTopTiles(int count)
+	private void updateTopTiles(int count)
 	{
-		Map<WorldPoint, Integer> sortedTiles = tileDensity.entrySet().stream()
-				.sorted((a, b) -> b.getValue().size() - a.getValue().size())
-				.limit(count)
-				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
+		if (tileDensity.isEmpty())
+		{
+			return;
+		}
+		
+		int threshold = findKthLargest(tileDensity.values(), Collection::size, count);
+		Map<WorldPoint, Integer> top = overlay.getTopTiles();
+		top.clear();
+		for (Map.Entry<WorldPoint, Set<Integer>> entry : tileDensity.entrySet())
+		{
+			int n = entry.getValue().size();
+			if (n >= threshold)
+			{
+				top.put(entry.getKey(), n);
+				
+				if (top.size() >= count)
+				{
+					break;
+				}
+			}
+		}
+	}
 
-		return sortedTiles;
+	private static <T> Integer findKthLargest(Collection<T> values, ToIntFunction<T> valueToInt, int k)
+	{
+		final Queue<Integer> heap = new PriorityQueue<>(k);
+		for (T t : values)
+		{
+			int intValue = valueToInt.applyAsInt(t);
+			int n = heap.size(); // O(1)
+			if (n < k || intValue > heap.peek())
+			{
+				if (n + 1 > k)
+				{
+					heap.poll(); // O(log k)
+				}
+				heap.add(intValue); // O(log k)
+			}
+		}
+		return heap.peek(); // O(1)
 	}
 }
