@@ -8,21 +8,23 @@ import net.runelite.client.ui.overlay.*;
 
 import javax.inject.Inject;
 import java.awt.*;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 public class afkspotOverlay extends Overlay
 {
     private final Client client;
     private final afkspotPlugin plugin;
-    private Map<WorldPoint, Integer> topTiles;
+    private Collection<Map.Entry<WorldPoint, Set<Integer>>> topTiles;
 
     @Inject
     public afkspotOverlay(Client client, afkspotPlugin plugin)
     {
         this.client = client;
         this.plugin = plugin;
-        this.topTiles = new HashMap<>();
+        this.topTiles = Collections.emptyList();
         setPosition(OverlayPosition.DYNAMIC);
         setLayer(OverlayLayer.ABOVE_SCENE);
     }
@@ -30,7 +32,7 @@ public class afkspotOverlay extends Overlay
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        for (Map.Entry<WorldPoint, Integer> entry : topTiles.entrySet())
+        for (Map.Entry<WorldPoint, Set<Integer>> entry : topTiles)
         {
             WorldPoint worldPoint = entry.getKey();
             if (client.getPlane() != worldPoint.getPlane())
@@ -44,7 +46,7 @@ public class afkspotOverlay extends Overlay
                 Polygon tilePoly = Perspective.getCanvasTilePoly(client, localPoint);
                 if (tilePoly != null)
                 {
-                    Color color = getColorForDensity(entry.getValue());
+                    Color color = getColorForDensity(entry.getValue().size());
                     OverlayUtil.renderPolygon(graphics, tilePoly, color);
                 }
             }
@@ -53,7 +55,7 @@ public class afkspotOverlay extends Overlay
         return null;
     }
 
-    public void updateTopTiles(Map<WorldPoint, Integer> topTiles)
+    public void updateTopTiles(Collection<Map.Entry<WorldPoint, Set<Integer>>> topTiles)
     {
         this.topTiles = topTiles;
     }

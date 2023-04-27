@@ -13,11 +13,15 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @PluginDescriptor(
@@ -25,6 +29,8 @@ import java.util.stream.Collectors;
 )
 public class afkspotPlugin extends Plugin
 {
+	private static final Comparator<Map.Entry<WorldPoint, Set<Integer>>> COMPARATOR = Comparator.comparingInt(e -> e.getValue().size());
+
 	@Inject
 	private Client client;
 
@@ -37,13 +43,12 @@ public class afkspotPlugin extends Plugin
 	@Inject
 	private OverlayManager overlayManager;
 
-	private Map<WorldPoint, Set<Integer>> tileDensity;
+	private final Map<WorldPoint, Set<Integer>> tileDensity = new HashMap<>();
 
 	@Override
 	protected void startUp() throws Exception
 	{
 		log.info("AFK Spot Finder started!");
-		tileDensity = new HashMap<>();
 		overlayManager.add(overlay);
 	}
 
@@ -51,6 +56,8 @@ public class afkspotPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		log.info("AFK Spot Finder stopped!");
+		tileDensity.clear();
+		overlay.updateTopTiles(Collections.emptyList());
 		overlayManager.remove(overlay);
 	}
 
@@ -60,6 +67,7 @@ public class afkspotPlugin extends Plugin
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
 			tileDensity.clear();
+			overlay.updateTopTiles(Collections.emptyList());
 		}
 	}
 
@@ -71,12 +79,18 @@ public class afkspotPlugin extends Plugin
 			return;
 		}
 
-		for (NPC npc : client.getNpcs())
+		NPC[] npcs = client.getCachedNPCs();
+		int n = npcs.length;
+		for (int index = 0; index < n; index++)
 		{
+			NPC npc = npcs[index];
+			if (npc == null || npc.isDead())
+			{
+				continue;
+			}
+
 			WorldPoint npcTile = npc.getWorldLocation();
-			int npcIndex = npc.getIndex();
-			tileDensity.putIfAbsent(npcTile, new HashSet<>());
-			tileDensity.get(npcTile).add(npcIndex);
+			tileDensity.computeIfAbsent(npcTile, k -> new HashSet<>()).add(index);
 		}
 
 		overlay.updateTopTiles(getTopTiles(config.numberOfTiles()));
@@ -88,13 +102,26 @@ public class afkspotPlugin extends Plugin
 		return configManager.getConfig(afkspotConfig.class);
 	}
 
-	private Map<WorldPoint, Integer> getTopTiles(int count)
+	private Collection<Map.Entry<WorldPoint, Set<Integer>>> getTopTiles(int count)
 	{
-		Map<WorldPoint, Integer> sortedTiles = tileDensity.entrySet().stream()
-				.sorted((a, b) -> b.getValue().size() - a.getValue().size())
-				.limit(count)
-				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
+		if (tileDensity.isEmpty())
+		{
+			return Collections.emptyList();
+		}
 
-		return sortedTiles;
+		final Queue<Map.Entry<WorldPoint, Set<Integer>>> heap = new PriorityQueue<>(count + 1, COMPARATOR);
+		for (Map.Entry<WorldPoint, Set<Integer>> entry : tileDensity.entrySet())
+		{
+			int n = heap.size();
+			if (n < count || COMPARATOR.compare(entry, heap.peek()) > 0)
+			{
+				if (n + 1 > count)
+				{
+					heap.poll();
+				}
+				heap.offer(entry);
+			}
+		}
+		return heap;
 	}
 }
