@@ -14,13 +14,14 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
-import java.util.function.ToIntFunction;
 
 @Slf4j
 @PluginDescriptor(
@@ -28,6 +29,8 @@ import java.util.function.ToIntFunction;
 )
 public class afkspotPlugin extends Plugin
 {
+	private static final Comparator<Map.Entry<WorldPoint, Set<Integer>>> COMPARATOR = Comparator.comparingInt(e -> e.getValue().size());
+
 	@Inject
 	private Client client;
 
@@ -90,7 +93,7 @@ public class afkspotPlugin extends Plugin
 			tileDensity.computeIfAbsent(npcTile, k -> new HashSet<>()).add(index);
 		}
 
-		updateTopTiles(config.numberOfTiles());
+		overlay.updateTopTiles(getTopTiles(config.numberOfTiles()));
 	}
 
 	@Provides
@@ -99,47 +102,26 @@ public class afkspotPlugin extends Plugin
 		return configManager.getConfig(afkspotConfig.class);
 	}
 
-	private void updateTopTiles(int count)
+	private Collection<Map.Entry<WorldPoint, Set<Integer>>> getTopTiles(int count)
 	{
 		if (tileDensity.isEmpty())
 		{
-			return;
+			return Collections.emptyList();
 		}
-		
-		int threshold = findKthLargest(tileDensity.values(), Collection::size, count);
-		Map<WorldPoint, Integer> top = overlay.getTopTiles();
-		top.clear();
+
+		final Queue<Map.Entry<WorldPoint, Set<Integer>>> heap = new PriorityQueue<>(count + 1, COMPARATOR);
 		for (Map.Entry<WorldPoint, Set<Integer>> entry : tileDensity.entrySet())
 		{
-			int n = entry.getValue().size();
-			if (n >= threshold)
+			int n = heap.size();
+			if (n < count || COMPARATOR.compare(entry, heap.peek()) > 0)
 			{
-				top.put(entry.getKey(), n);
-				
-				if (top.size() >= count)
+				if (n + 1 > count)
 				{
-					break;
+					heap.poll();
 				}
+				heap.offer(entry);
 			}
 		}
-	}
-
-	private static <T> Integer findKthLargest(Collection<T> values, ToIntFunction<T> valueToInt, int k)
-	{
-		final Queue<Integer> heap = new PriorityQueue<>(k);
-		for (T t : values)
-		{
-			int intValue = valueToInt.applyAsInt(t);
-			int n = heap.size(); // O(1)
-			if (n < k || intValue > heap.peek())
-			{
-				if (n + 1 > k)
-				{
-					heap.poll(); // O(log k)
-				}
-				heap.add(intValue); // O(log k)
-			}
-		}
-		return heap.peek(); // O(1)
+		return heap;
 	}
 }
