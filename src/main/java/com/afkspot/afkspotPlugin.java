@@ -9,6 +9,7 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -79,12 +80,22 @@ public class afkspotPlugin extends Plugin
 			return;
 		}
 
+		String npcNameFilter = config.npcName().trim().toLowerCase();
+
 		NPC[] npcs = client.getCachedNPCs();
 		int n = npcs.length;
 		for (int index = 0; index < n; index++)
 		{
 			NPC npc = npcs[index];
-			if (npc == null || npc.isDead())
+
+			if (npc == null || npc.isDead() || !isAttackable(client, npc))
+			{
+				continue;
+			}
+
+			// Skip the NPC if its name doesn't match the specified name
+			String npcName = npc.getName().toLowerCase();
+			if (!npcNameFilter.isEmpty() && !npcName.equals(npcNameFilter))
 			{
 				continue;
 			}
@@ -96,10 +107,38 @@ public class afkspotPlugin extends Plugin
 		overlay.updateTopTiles(getTopTiles(config.numberOfTiles()));
 	}
 
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event) {
+		if (!event.getGroup().equals("afkspot")) {
+			return;
+		}
+
+		if (event.getKey().equals("npcName")) {
+			// Clear the tileDensity map and the overlay when the NPC name is changed
+			tileDensity.clear();
+			overlay.updateTopTiles(Collections.emptyList());
+		}
+	}
+
 	@Provides
 	afkspotConfig provideConfig(ConfigManager configManager)
 	{
 		return configManager.getConfig(afkspotConfig.class);
+	}
+
+	private boolean isAttackable(Client client, NPC npc) {
+		NPCComposition npcComposition = client.getNpcDefinition(npc.getId());
+
+		if (npcComposition != null) {
+			String[] actions = npcComposition.getActions();
+
+			for (String action : actions) {
+				if (action != null && action.toLowerCase().contains("attack")) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private Collection<Map.Entry<WorldPoint, Set<Integer>>> getTopTiles(int count)
