@@ -45,6 +45,8 @@ public class afkspotPlugin extends Plugin
 	private OverlayManager overlayManager;
 
 	private final Map<WorldPoint, Set<Integer>> tileDensity = new HashMap<>();
+	private int region = 0;
+	private int plane = 0;
 
 	@Override
 	protected void startUp() throws Exception
@@ -57,6 +59,7 @@ public class afkspotPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		log.info("AFK Spot Finder stopped!");
+		this.region = this.plane = 0;
 		tileDensity.clear();
 		overlay.updateTopTiles(Collections.emptyList());
 		overlayManager.remove(overlay);
@@ -78,6 +81,16 @@ public class afkspotPlugin extends Plugin
 		if (client.getGameState() != GameState.LOGGED_IN)
 		{
 			return;
+		}
+
+		// Clean up tileDensity on region changes (avoids memory leak)
+		int plane = client.getPlane();
+		int region = client.getLocalPlayer().getWorldLocation().getRegionID();
+		if (this.plane != plane || this.region != region)
+		{
+			this.plane = plane;
+			this.region = region;
+			tileDensity.clear();
 		}
 
 		String npcNameFilter = config.npcName().trim().toLowerCase();
