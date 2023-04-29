@@ -13,14 +13,14 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class afkspotOverlay extends Overlay
+public class AfkSpotOverlay extends Overlay
 {
     private final Client client;
-    private final afkspotPlugin plugin;
+    private final AfkSpotPlugin plugin;
     private Collection<Map.Entry<WorldPoint, Set<Integer>>> topTiles;
 
     @Inject
-    public afkspotOverlay(Client client, afkspotPlugin plugin)
+    public AfkSpotOverlay(Client client, AfkSpotPlugin plugin)
     {
         this.client = client;
         this.plugin = plugin;

@@ -6,7 +6,7 @@ import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.Range;
 
 @ConfigGroup("afkspot")
-public interface afkspotConfig extends Config
+public interface AfkSpotConfig extends Config
 {
 	@ConfigItem(
 			keyName = "numberOfTiles",

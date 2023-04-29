@@ -29,7 +29,7 @@ import java.util.Set;
 @PluginDescriptor(
 		name = "AFK Spot Finder"
 )
-public class afkspotPlugin extends Plugin
+public class AfkSpotPlugin extends Plugin
 {
 	private static final Comparator<Map.Entry<WorldPoint, Set<Integer>>> COMPARATOR = Comparator.comparingInt(e -> e.getValue().size());
 
@@ -37,10 +37,10 @@ public class afkspotPlugin extends Plugin
 	private Client client;
 
 	@Inject
-	private afkspotConfig config;
+	private AfkSpotConfig config;
 
 	@Inject
-	private afkspotOverlay overlay;
+	private AfkSpotOverlay overlay;
 
 	@Inject
 	private OverlayManager overlayManager;
@@ -137,9 +137,9 @@ public class afkspotPlugin extends Plugin
 	}
 
 	@Provides
-	afkspotConfig provideConfig(ConfigManager configManager)
+	AfkSpotConfig provideConfig(ConfigManager configManager)
 	{
-		return configManager.getConfig(afkspotConfig.class);
+		return configManager.getConfig(AfkSpotConfig.class);
 	}
 
 	private boolean isAttackable(NPC npc)
