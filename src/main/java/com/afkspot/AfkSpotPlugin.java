@@ -27,7 +27,9 @@ import java.util.Set;
 
 @Slf4j
 @PluginDescriptor(
-		name = "AFK Spot Finder"
+	name = "AFK Spot Finder",
+	description = "Find the densest location of enemies in order to find the best afk spot",
+	tags = { "combat", "afk", "markers", "density", "tile" }
 )
 public class AfkSpotPlugin extends Plugin
 {
