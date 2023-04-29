@@ -13,6 +13,7 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
+import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -49,19 +50,18 @@ public class afkspotPlugin extends Plugin
 	private int plane = 0;
 
 	@Override
-	protected void startUp() throws Exception
+	protected void startUp()
 	{
 		log.info("AFK Spot Finder started!");
 		overlayManager.add(overlay);
 	}
 
 	@Override
-	protected void shutDown() throws Exception
+	protected void shutDown()
 	{
 		log.info("AFK Spot Finder stopped!");
 		this.region = this.plane = 0;
-		tileDensity.clear();
-		overlay.updateTopTiles(Collections.emptyList());
+		this.clear();
 		overlayManager.remove(overlay);
 	}
 
@@ -70,8 +70,7 @@ public class afkspotPlugin extends Plugin
 	{
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
-			tileDensity.clear();
-			overlay.updateTopTiles(Collections.emptyList());
+			this.clear();
 		}
 	}
 
@@ -90,10 +89,10 @@ public class afkspotPlugin extends Plugin
 		{
 			this.plane = plane;
 			this.region = region;
-			tileDensity.clear();
+			this.clear();
 		}
 
-		String npcNameFilter = config.npcName().trim().toLowerCase();
+		String npcNameFilter = config.npcName().trim();
 
 		NPC[] npcs = client.getCachedNPCs();
 		int n = npcs.length;
@@ -101,14 +100,13 @@ public class afkspotPlugin extends Plugin
 		{
 			NPC npc = npcs[index];
 
-			if (npc == null || npc.isDead() || !isAttackable(client, npc))
+			if (npc == null || npc.isDead() || !isAttackable(npc))
 			{
 				continue;
 			}
 
 			// Skip the NPC if its name doesn't match the specified name
-			String npcName = npc.getName().toLowerCase();
-			if (!npcNameFilter.isEmpty() && !npcName.equals(npcNameFilter))
+			if (!npcNameFilter.isEmpty() && !npcNameFilter.equalsIgnoreCase(npc.getName()))
 			{
 				continue;
 			}
@@ -128,9 +126,14 @@ public class afkspotPlugin extends Plugin
 
 		if (event.getKey().equals("npcName")) {
 			// Clear the tileDensity map and the overlay when the NPC name is changed
-			tileDensity.clear();
-			overlay.updateTopTiles(Collections.emptyList());
+			this.clear();
 		}
+	}
+
+	private void clear()
+	{
+		tileDensity.clear();
+		overlay.updateTopTiles(Collections.emptyList());
 	}
 
 	@Provides
@@ -139,19 +142,10 @@ public class afkspotPlugin extends Plugin
 		return configManager.getConfig(afkspotConfig.class);
 	}
 
-	private boolean isAttackable(Client client, NPC npc) {
-		NPCComposition npcComposition = client.getNpcDefinition(npc.getId());
-
-		if (npcComposition != null) {
-			String[] actions = npcComposition.getActions();
-
-			for (String action : actions) {
-				if (action != null && action.toLowerCase().contains("attack")) {
-					return true;
-				}
-			}
-		}
-		return false;
+	private boolean isAttackable(NPC npc)
+	{
+		NPCComposition comp = npc.getTransformedComposition();
+		return comp != null && ArrayUtils.contains(comp.getActions(), "Attack");
 	}
 
 	private Collection<Map.Entry<WorldPoint, Set<Integer>>> getTopTiles(int count)
