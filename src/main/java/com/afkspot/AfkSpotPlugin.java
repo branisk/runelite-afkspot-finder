@@ -15,15 +15,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 import org.apache.commons.lang3.ArrayUtils;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @PluginDescriptor(
@@ -94,7 +86,7 @@ public class AfkSpotPlugin extends Plugin
 			this.clear();
 		}
 
-		String npcNameFilter = config.npcName().trim();
+		List<String> npcNameFilter = Arrays.asList(config.npcNames().split(","));
 
 		NPC[] npcs = client.getCachedNPCs();
 		int n = npcs.length;
@@ -108,7 +100,7 @@ public class AfkSpotPlugin extends Plugin
 			}
 
 			// Skip the NPC if its name doesn't match the specified name
-			if (!npcNameFilter.isEmpty() && !npcNameFilter.equalsIgnoreCase(npc.getName()))
+			if (!npcNameFilter.isEmpty() && npcNameFilter.stream().noneMatch(name -> name.trim().equalsIgnoreCase(npc.getName())))
 			{
 				continue;
 			}

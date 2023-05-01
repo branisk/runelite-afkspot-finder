@@ -21,15 +21,13 @@ public interface AfkSpotConfig extends Config
 	}
 
 	@ConfigItem(
-			keyName = "npcName",
-			name = "NPC Name",
-			description = "Specify the name of the NPC to highlight tiles for",
+			keyName = "npcNames",
+			name = "NPC Names",
+			description = "Specify the names of the NPCs to highlight tiles for, separated by a comma",
 			position = 2
 	)
-	default String npcName()
+	default String npcNames()
 	{
 		return "";
 	}
-
 }
-
