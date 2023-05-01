@@ -60,6 +60,7 @@ public class AfkSpotPlugin extends Plugin
 	protected void startUp()
 	{
 		log.info("AFK Spot Finder started!");
+		parseFilters(config.npcNames());
 		overlayManager.add(overlay);
 	}
 
@@ -69,6 +70,7 @@ public class AfkSpotPlugin extends Plugin
 		log.info("AFK Spot Finder stopped!");
 		this.region = this.plane = 0;
 		this.clear();
+		this.npcNameFilters.clear();
 		overlayManager.remove(overlay);
 	}
 
@@ -132,12 +134,7 @@ public class AfkSpotPlugin extends Plugin
 
 		if (event.getKey().equals("npcNames")) {
 			// Update npcNameFilters
-			npcNameFilters.clear();
-			DELIM.splitAsStream(event.getNewValue())
-				.filter(StringUtils::isNotBlank)
-				.map(String::trim)
-				.map(String::toLowerCase)
-				.forEach(npcNameFilters::add);
+			this.parseFilters(event.getNewValue());
 
 			// Clear the tileDensity map and the overlay when the NPC name is changed
 			this.clear();
@@ -148,6 +145,16 @@ public class AfkSpotPlugin extends Plugin
 	{
 		tileDensity.clear();
 		overlay.updateTopTiles(Collections.emptyList());
+	}
+
+	private void parseFilters(String npcNames)
+	{
+		npcNameFilters.clear();
+		DELIM.splitAsStream(npcNames)
+			.filter(StringUtils::isNotBlank)
+			.map(String::trim)
+			.map(String::toLowerCase)
+			.forEach(npcNameFilters::add);
 	}
 
 	@Provides
