@@ -14,18 +14,18 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Slf4j
 @PluginDescriptor(
@@ -36,6 +36,7 @@ import java.util.Set;
 public class AfkSpotPlugin extends Plugin
 {
 	private static final Comparator<Map.Entry<WorldPoint, Set<Integer>>> COMPARATOR = Comparator.comparingInt(e -> e.getValue().size());
+	private static final Pattern DELIM = Pattern.compile("[,;\\n]");
 
 	@Inject
 	private Client client;
@@ -49,6 +50,8 @@ public class AfkSpotPlugin extends Plugin
 	@Inject
 	private OverlayManager overlayManager;
 
+	private final Set<String> npcNameFilters = Collections.synchronizedSet(new HashSet<>());
+
 	private final Map<WorldPoint, Set<Integer>> tileDensity = new HashMap<>();
 	private int region = 0;
 	private int plane = 0;
@@ -57,6 +60,7 @@ public class AfkSpotPlugin extends Plugin
 	protected void startUp()
 	{
 		log.info("AFK Spot Finder started!");
+		parseFilters(config.npcNames());
 		overlayManager.add(overlay);
 	}
 
@@ -66,6 +70,7 @@ public class AfkSpotPlugin extends Plugin
 		log.info("AFK Spot Finder stopped!");
 		this.region = this.plane = 0;
 		this.clear();
+		this.npcNameFilters.clear();
 		overlayManager.remove(overlay);
 	}
 
@@ -96,8 +101,6 @@ public class AfkSpotPlugin extends Plugin
 			this.clear();
 		}
 
-		List<String> npcNameFilter = Arrays.asList(config.npcNames().split(","));
-
 		NPC[] npcs = client.getCachedNPCs();
 		int n = npcs.length;
 		for (int index = 0; index < n; index++)
@@ -110,7 +113,8 @@ public class AfkSpotPlugin extends Plugin
 			}
 
 			// Skip the NPC if its name doesn't match the specified name
-			if (!npcNameFilter.isEmpty() && npcNameFilter.stream().noneMatch(name -> name.trim().equalsIgnoreCase(npc.getName())))
+			String name = npc.getName();
+			if (!npcNameFilters.isEmpty() && (name == null || !npcNameFilters.contains(name.toLowerCase())))
 			{
 				continue;
 			}
@@ -128,7 +132,10 @@ public class AfkSpotPlugin extends Plugin
 			return;
 		}
 
-		if (event.getKey().equals("npcName")) {
+		if (event.getKey().equals("npcNames")) {
+			// Update npcNameFilters
+			this.parseFilters(event.getNewValue());
+
 			// Clear the tileDensity map and the overlay when the NPC name is changed
 			this.clear();
 		}
@@ -138,6 +145,16 @@ public class AfkSpotPlugin extends Plugin
 	{
 		tileDensity.clear();
 		overlay.updateTopTiles(Collections.emptyList());
+	}
+
+	private void parseFilters(String npcNames)
+	{
+		npcNameFilters.clear();
+		DELIM.splitAsStream(npcNames)
+			.filter(StringUtils::isNotBlank)
+			.map(String::trim)
+			.map(String::toLowerCase)
+			.forEach(npcNameFilters::add);
 	}
 
 	@Provides
