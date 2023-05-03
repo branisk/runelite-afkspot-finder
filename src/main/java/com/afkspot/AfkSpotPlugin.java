@@ -120,7 +120,15 @@ public class AfkSpotPlugin extends Plugin
 			}
 
 			WorldPoint npcTile = npc.getWorldLocation();
-			tileDensity.computeIfAbsent(npcTile, k -> new HashSet<>()).add(index);
+			NPCComposition comp = npc.getTransformedComposition();
+			int size = comp != null ? comp.getSize() : 1;
+
+			for (int x = 0; x < size; x++) {
+				for (int y = 0; y < size; y++) {
+					WorldPoint occupiedTile = npcTile.dx(x).dy(y);
+					tileDensity.computeIfAbsent(occupiedTile, k -> new HashSet<>()).add(index);
+				}
+			}
 		}
 
 		overlay.updateTopTiles(getTopTiles(config.numberOfTiles()));
