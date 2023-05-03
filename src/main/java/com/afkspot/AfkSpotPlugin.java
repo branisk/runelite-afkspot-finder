@@ -4,6 +4,7 @@ import com.google.inject.Provides;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GameStateChanged;
@@ -119,13 +120,10 @@ public class AfkSpotPlugin extends Plugin
 				continue;
 			}
 
-			WorldPoint npcTile = npc.getWorldLocation();
-			NPCComposition comp = npc.getTransformedComposition();
-			int size = comp != null ? comp.getSize() : 1;
-
-			for (int x = 0; x < size; x++) {
-				for (int y = 0; y < size; y++) {
-					WorldPoint occupiedTile = npcTile.dx(x).dy(y);
+			WorldArea area = npc.getWorldArea();
+			for (int dx = 0; dx < area.getWidth(); dx++) {
+				for (int dy = 0; dy < area.getHeight(); dy++) {
+					WorldPoint occupiedTile = new WorldPoint(area.getX() + dx, area.getY() + dy, area.getPlane());
 					tileDensity.computeIfAbsent(occupiedTile, k -> new HashSet<>()).add(index);
 				}
 			}
