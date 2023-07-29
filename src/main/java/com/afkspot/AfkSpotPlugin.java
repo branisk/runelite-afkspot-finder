@@ -167,10 +167,10 @@ public class AfkSpotPlugin extends Plugin
 		clientThread.invoke(() -> {
 			npcNameFilters.clear();
 			DELIM.splitAsStream(npcNames)
-							.filter(StringUtils::isNotBlank)
-							.map(String::trim)
-							.map(String::toLowerCase)
-							.forEach(npcNameFilters::add);
+				.filter(StringUtils::isNotBlank)
+				.map(String::trim)
+				.map(String::toLowerCase)
+				.forEach(npcNameFilters::add);
 		});
 	}
 
