@@ -102,6 +102,7 @@ public class AfkSpotPlugin extends Plugin
 			this.clear();
 		}
 
+		boolean updated = false;
 		NPC[] npcs = client.getCachedNPCs();
 		int n = npcs.length;
 		for (int index = 0; index < n; index++)
@@ -124,12 +125,14 @@ public class AfkSpotPlugin extends Plugin
 			for (int dx = 0; dx < area.getWidth(); dx++) {
 				for (int dy = 0; dy < area.getHeight(); dy++) {
 					WorldPoint occupiedTile = new WorldPoint(area.getX() + dx, area.getY() + dy, area.getPlane());
-					tileDensity.computeIfAbsent(occupiedTile, k -> new HashSet<>()).add(index);
+					updated |= tileDensity.computeIfAbsent(occupiedTile, k -> new HashSet<>()).add(index);
 				}
 			}
 		}
 
-		overlay.updateTopTiles(getTopTiles(config.numberOfTiles()));
+		if (updated) {
+			overlay.updateTopTiles(getTopTiles(config.numberOfTiles()));
+		}
 	}
 
 	@Subscribe
@@ -177,11 +180,6 @@ public class AfkSpotPlugin extends Plugin
 
 	private Collection<Map.Entry<WorldPoint, Set<Integer>>> getTopTiles(int count)
 	{
-		if (tileDensity.isEmpty())
-		{
-			return Collections.emptyList();
-		}
-
 		final Queue<Map.Entry<WorldPoint, Set<Integer>>> heap = new PriorityQueue<>(count + 1, COMPARATOR);
 		for (Map.Entry<WorldPoint, Set<Integer>> entry : tileDensity.entrySet())
 		{
