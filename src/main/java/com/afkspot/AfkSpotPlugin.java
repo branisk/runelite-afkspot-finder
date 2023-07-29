@@ -8,6 +8,7 @@ import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -43,6 +44,9 @@ public class AfkSpotPlugin extends Plugin
 	private Client client;
 
 	@Inject
+	private ClientThread clientThread;
+
+	@Inject
 	private AfkSpotConfig config;
 
 	@Inject
@@ -51,7 +55,7 @@ public class AfkSpotPlugin extends Plugin
 	@Inject
 	private OverlayManager overlayManager;
 
-	private final Set<String> npcNameFilters = Collections.synchronizedSet(new HashSet<>());
+	private final Set<String> npcNameFilters = new HashSet<>();
 
 	private final Map<WorldPoint, Set<Integer>> tileDensity = new HashMap<>();
 	private int region = 0;
@@ -69,9 +73,11 @@ public class AfkSpotPlugin extends Plugin
 	protected void shutDown()
 	{
 		log.info("AFK Spot Finder stopped!");
-		this.region = this.plane = 0;
-		this.clear();
-		this.npcNameFilters.clear();
+		clientThread.invoke(() -> {
+			this.region = this.plane = 0;
+			this.clear();
+			this.npcNameFilters.clear();
+		});
 		overlayManager.remove(overlay);
 	}
 
@@ -146,7 +152,7 @@ public class AfkSpotPlugin extends Plugin
 			this.parseFilters(event.getNewValue());
 
 			// Clear the tileDensity map and the overlay when the NPC name is changed
-			this.clear();
+			clientThread.invoke(this::clear);
 		}
 	}
 
@@ -158,12 +164,14 @@ public class AfkSpotPlugin extends Plugin
 
 	private void parseFilters(String npcNames)
 	{
-		npcNameFilters.clear();
-		DELIM.splitAsStream(npcNames)
-			.filter(StringUtils::isNotBlank)
-			.map(String::trim)
-			.map(String::toLowerCase)
-			.forEach(npcNameFilters::add);
+		clientThread.invoke(() -> {
+			npcNameFilters.clear();
+			DELIM.splitAsStream(npcNames)
+							.filter(StringUtils::isNotBlank)
+							.map(String::trim)
+							.map(String::toLowerCase)
+							.forEach(npcNameFilters::add);
+		});
 	}
 
 	@Provides
