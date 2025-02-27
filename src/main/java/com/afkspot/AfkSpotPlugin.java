@@ -99,7 +99,8 @@ public class AfkSpotPlugin extends Plugin
 		}
 
 		// Clean up tileDensity on region changes (avoids memory leak)
-		int plane = client.getPlane();
+		WorldView worldView = client.getTopLevelWorldView();
+		int plane = worldView.getPlane();
 		int region = client.getLocalPlayer().getWorldLocation().getRegionID();
 		if (this.plane != plane || this.region != region)
 		{
@@ -109,12 +110,8 @@ public class AfkSpotPlugin extends Plugin
 		}
 
 		boolean updated = false;
-		NPC[] npcs = client.getCachedNPCs();
-		int n = npcs.length;
-		for (int index = 0; index < n; index++)
+		for (NPC npc : worldView.npcs())
 		{
-			NPC npc = npcs[index];
-
 			if (npc == null || npc.isDead() || !isAttackable(npc))
 			{
 				continue;
@@ -127,6 +124,7 @@ public class AfkSpotPlugin extends Plugin
 				continue;
 			}
 
+			int index = npc.getIndex();
 			WorldArea area = npc.getWorldArea();
 			for (int dx = 0; dx < area.getWidth(); dx++) {
 				for (int dy = 0; dy < area.getHeight(); dy++) {
